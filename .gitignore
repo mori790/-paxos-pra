@@ -1,2 +1,4 @@
 paxos/__pycache__/*
 .vscode/settings.json
+.pytest_cache/*
+tests/__pycache__/*
