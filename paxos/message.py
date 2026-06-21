@@ -34,7 +34,7 @@ class Promise:
     proposer_id: NodeId
     proposal_number: ProposalNumber
     accepted_number: Optional[ProposalNumber] = None
-    accepted_number: Optional[Value] = None
+    accepted_value: Optional[Value] = None
     
 @dataclass(frozen=True)
 class AcceptRequest:
