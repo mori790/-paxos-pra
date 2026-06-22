@@ -8,6 +8,7 @@ Step 3: Acceptor単体を作る
     1. 初めての Prepare には Promise を返す
     2. すでに高い proposal number に Promise していたら、古い Prepare は拒否する
     3. Promise には、過去に accepted した値が含まれる
+------------------------------------------------------------------------------
 Step 4: 3台Acceptorで多数派判定する
 Step 5: Proposerを作る
 Step 6: 古いproposalが拒否されるテストを書く
