@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 from paxos.message import Prepare, Promise, AcceptRequest, Accepted
@@ -75,3 +75,99 @@ class Acceptor:
             proposal_number=message.proposal_number,
             value=message.value,
         )
+        
+@dataclass
+class Proposer:
+    """
+    Paxos の Proposer。
+
+    Proposer は以下を行う。
+
+    1. Prepare を作る
+    2. Promise を集める
+    3. Promise の中から最終的に提案する value を決める
+    4. AcceptRequest を作る
+    5. Accepted を集める
+    """
+    
+    node_id: NodeId
+    proposal_number: ProposalNumber
+    origin_value: Value
+    promises: list[Promise] = field(default_factory=list)
+    accepted: list[Accepted] = field(default_factory=list)
+    
+    def create_prepare(self, acceptor_id: NodeId) -> Prepare:
+        """
+        指定した Acceptor 宛ての Prepare メッセージを作る。
+        """
+        
+        return Prepare(
+            proposer_id=self.node_id,
+            acceptor_id=acceptor_id,
+            proposal_number=self.proposal_number,
+        )
+    
+    def receive_promise(self, promise: Promise) -> None:
+        """
+        Acceptor から返ってきた Promise を保存する。
+        """
+
+        if promise.proposer_id != self.node_id:
+            return 
+        
+        if promise.proposal_number != self.proposal_number:
+            return
+        
+        self.promises.append(promise)
+        
+    def has_majority_promises(self, majority_size: int) -> bool:
+        """
+        Promise が多数派に達したか確認する。
+        """
+
+        return len(self.promises) >= majority_size
+    
+
+    def select_value(self) -> Value:
+        """
+        Promise を見て、最終的に提案する value を選ぶ。
+
+        ルール:
+        - Promise の中に accepted_value がなければ original_value を使う
+        - accepted_value があれば、
+          accepted_number が一番大きいものの value を引き継ぐ
+        """
+        
+        promises_with_accepted_value = [
+            promise
+            for promise in self.promises
+            if promise.accepted_number is not None
+            and promise.accepted_value is not None
+        ]
+        
+        if len(promises_with_accepted_value) == 0:
+            return self.original_value
+        
+        latest_promise = max(
+            promises_with_accepted_value,
+            key=lambda promise: promise.accepted_number,
+        )
+        
+        return latest_promise.accepted_value
+    
+    def create_accept_request(
+        self,
+        acceptor_id: NodeId,
+        value: Value,
+    ) -> AcceptRequest:
+        """
+        指定した Acceptor 宛ての AcceptRequest メッセージを作る。
+        """
+        
+        return AcceptRequest(
+            proposer_id=self.node_id,
+            acceptor_id=acceptor_id,
+            proposal_number=self.proposal_number,
+            value=value,
+        )
+        
